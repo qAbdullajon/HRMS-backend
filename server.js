@@ -1,18 +1,20 @@
-require('dotenv').config()
-const cors = require('cors')
-const express = require('express')
+require("dotenv").config();
+const cors = require("cors");
+const express = require("express");
 
-const authRouter = require('./routes/auth.routes')
+const authRouter = require("./routes/auth.routes");
 
 function starter() {
   try {
     const app = express();
     const PORT = process.env.PORT;
 
-    app.use(cors({
-      origin: 'https://hrms-neon-xi.vercel.app',
-      credentials: true,
-    }));
+    app.use(
+      cors({
+        origin: "https://hrms-neon-xi.vercel.app",
+        credentials: true,
+      })
+    );
     app.use(express.json());
     app.use("/api/auth", authRouter);
 
