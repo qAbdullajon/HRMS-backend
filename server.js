@@ -10,7 +10,7 @@ function starter() {
     const PORT = process.env.PORT;
 
     app.use(cors({
-      origin: process.env.CLIENT_URL,
+      origin: 'https://hrms-neon-xi.vercel.app',
       credentials: true,
     }));
     app.use(express.json());
