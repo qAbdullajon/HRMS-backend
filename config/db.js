@@ -5,6 +5,12 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
   host: process.env.DB_HOST,
   dialect: 'postgres',
   logging: false,
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false, // bu NileDB uchun kerak bo'lishi mumkin
+    }
+  }
 });
 
 module.exports = sequelize;
