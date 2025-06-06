@@ -1,6 +1,7 @@
 require("dotenv").config();
 const cors = require("cors");
 const express = require("express");
+const cookieParser = require('cookie-parser')
 
 const authRouter = require("./routes/auth.routes");
 
@@ -11,11 +12,12 @@ function starter() {
 
     app.use(
       cors({
-        origin: "https://hrms-neon-xi.vercel.app",
+        origin: process.env.CLIENT_URL,
         credentials: true,
       })
     );
     app.use(express.json());
+    app.use(cookieParser())
     app.use("/api/auth", authRouter);
 
     app.listen(PORT, console.log(`server is running on ${PORT} port!`));

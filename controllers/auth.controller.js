@@ -2,7 +2,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
-const { User, ResetCode } = require("../models/relations");
+const { User, ResetCode, RefreshToken } = require("../models/relations");
 const { hashedPassword } = require("../utils/hash");
 const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
 const {
@@ -28,12 +28,12 @@ exports.login = async (req, res) => {
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
-    const token = await addRefreshToken(refreshToken, user.id);
+    await addRefreshToken(refreshToken, user.id);
     res.cookie("refreshToken", refreshToken, {
-      httpOnly: true, // faqat HTTP orqali ko‘rinadi (JS dan emas)
-      secure: true, // HTTPS bo‘lsa true (productionda)
-      sameSite: "Strict", // CSRF himoyasi uchun
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 kun
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production" ? true : false,
+      sameSite: "Strict", 
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     user.refreshToken = refreshToken;
@@ -41,6 +41,22 @@ exports.login = async (req, res) => {
 
     res.json({ accessToken, user });
   } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+exports.userMe = async (req, res) => {
+  const { userId } = req.user;
+  try {
+    const user = await User.findByPk(userId, {
+      attributes: { exclude: ["password"] },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -161,29 +177,32 @@ exports.changePass = async (req, res) => {
     await ResetCode.destroy({ where: { email } });
 
     return res.status(200).json({ message: "Password successfully changed." });
-
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Server error" });
   }
 };
-
 exports.refreshToken = async (req, res) => {
-  const { token } = req.body;
-  if (!token) return res.sendStatus(401);
-
+  const { refreshToken } = req.cookies;
+  
+  if (!refreshToken) {
+    return res.status(401).json({ message: "Refresh token not found" });
+  }
   try {
-    const payload = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
-    const user = await User.findByPk(payload.id);
-    if (!user || user.refreshToken !== token) return res.sendStatus(403);
+    const existToken = await RefreshToken.findOne({
+      where: { token: refreshToken },
+    });
 
-    const accessToken = jwt.sign(
-      { id: user.id },
-      process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "15m" }
-    );
-    res.json({ accessToken });
-  } catch {
-    res.status(500).json({ message: "Server error" });
+    if (!existToken) {
+      return res.status(403).json({ message: "Invalid refresh token" });
+    }
+
+    const accessToken = generateAccessToken({ userId: existToken.userId });
+
+    return res.json({ accessToken });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
