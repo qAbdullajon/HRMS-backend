@@ -10,8 +10,8 @@ const {
   changePass,
   userMe,
 } = require("../controllers/auth.controller");
-const validateRegister = require("../middlewares/validate.middleware");
 const { authenticateToken } = require("../middlewares/auth.middleware");
+const { validateRegister } = require("../middlewares/validate.middleware");
 
 router.post("/login", validateRegister, login);
 router.get('/user/me', authenticateToken, userMe);
